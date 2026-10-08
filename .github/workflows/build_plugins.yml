@@ -30,9 +30,14 @@ jobs:
 
       - name: Discover and compile all plugin crates
         run: |
-          # Loop through every directory containing a Cargo.toml
-          find . -maxdepth 2 -mindepth 2 -name "Cargo.toml" | while read -r cargo_file; do
+          find . -maxdepth 2 -name "Cargo.toml" -not -path "*/target/*" | while read -r cargo_file; do
             plugin_dir=$(dirname "$cargo_file")
+            
+            # Skip root directory if there's no crate at the top level
+            if [ "$plugin_dir" = "." ]; then
+              continue
+            fi
+
             echo "----------------------------------------"
             echo "Building plugin in: $plugin_dir"
             echo "----------------------------------------"
@@ -40,12 +45,12 @@ jobs:
             (
               cd "$plugin_dir"
               cargo build --release --target wasm32-unknown-unknown
-              
-              # Copy all compiled .wasm files into the root dist directory
-              find target/wasm32-unknown-unknown/release/ -maxdepth 1 -name "*.wasm" -exec cp {} ../dist/ \;
             )
-          done
 
+            # Copy generated .wasm files to the root dist folder
+            find "$plugin_dir/target/wasm32-unknown-unknown/release/" -maxdepth 1 -name "*.wasm" -exec cp {} "$GITHUB_WORKSPACE/dist/" \;
+          done
+          
       - name: List compiled WebAssembly binaries
         run: ls -la dist/
 

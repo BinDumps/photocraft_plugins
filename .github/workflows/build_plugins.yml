@@ -1,0 +1,57 @@
+name: Build PhotoCraft Plugins
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain & WASM target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Create output directory
+        run: mkdir -p dist
+
+      - name: Discover and compile all plugin crates
+        run: |
+          # Loop through every directory containing a Cargo.toml
+          find . -maxdepth 2 -mindepth 2 -name "Cargo.toml" | while read -r cargo_file; do
+            plugin_dir=$(dirname "$cargo_file")
+            echo "----------------------------------------"
+            echo "Building plugin in: $plugin_dir"
+            echo "----------------------------------------"
+            
+            (
+              cd "$plugin_dir"
+              cargo build --release --target wasm32-unknown-unknown
+              
+              # Copy all compiled .wasm files into the root dist directory
+              find target/wasm32-unknown-unknown/release/ -maxdepth 1 -name "*.wasm" -exec cp {} ../dist/ \;
+            )
+          done
+
+      - name: List compiled WebAssembly binaries
+        run: ls -la dist/
+
+      - name: Upload compiled .wasm artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: photocraft-wasm-plugins
+          path: dist/*.wasm
+          retention-days: 14

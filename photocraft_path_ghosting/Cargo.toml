@@ -1,0 +1,19 @@
+[package]
+name = "photocraft-plugin-path-ghosting"
+description = "PhotoCraft Path Ghosting & Silhouette Offset Filter"
+version = "1.0.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
